@@ -21,12 +21,12 @@ Usage:
    
 2. Save the screenshot to a file
 
-  ./screenshot {filename}
+   ./screenshot {filename}
   
 3. Save the screenshot to a file with no filename
    specified.
    
-  ./screenshot -t
+   ./screenshot -t
   
    This will, for example, generate the
    following file:

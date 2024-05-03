@@ -42,14 +42,13 @@ screenshot(char *path)
 		     GrabModeAsync, GrabModeAsync, root, cursor1, CurrentTime);
 
 	XGCValues gcv;
+  gcv.function = GXcopy;
 	gcv.foreground = XWhitePixel(display, 0);
 	gcv.background = XBlackPixel(display, 0);
-	gcv.function = GXxor;
 	gcv.subwindow_mode = IncludeInferiors;
 	GC gc = XCreateGC(display, root,
-			  GCFunction | GCForeground | GCBackground
-			   | GCSubwindowMode,
-			  &gcv);
+                    GCFunction | GCForeground | GCBackground | GCSubwindowMode,
+                    &gcv);
 
 
 	enum SelectionState state = READY;

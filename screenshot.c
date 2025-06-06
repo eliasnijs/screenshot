@@ -12,14 +12,13 @@
 
 #include "types.h"
 
-enum SelectionState {
-	COMPLETE,
-	IN_PROGRESS,
-	READY,
+enum SelectionState { COMPLETE, IN_PROGRESS, READY, };
+char *SELECTION_STATE_REPR_TABLE[] = {
+	"COMPLETE", "IN_PROGRESS", "READY"
 };
 
 void
-BGRA_to_RGBA(U8 *pixels, U64 size)
+bgra2rgba(U8 *pixels, U64 size)
 {
 	for (U32 i = 0; i < size; i += 4) {
 		U8 R = pixels[i];
@@ -42,17 +41,17 @@ screenshot(char *path)
 		     GrabModeAsync, GrabModeAsync, root, cursor1, CurrentTime);
 
 	XGCValues gcv;
-  gcv.function = GXcopy;
-	gcv.foreground = XWhitePixel(display, 0);
-	gcv.background = XBlackPixel(display, 0);
+	gcv.function = GXinvert;
 	gcv.subwindow_mode = IncludeInferiors;
 	GC gc = XCreateGC(display, root,
-                    GCFunction | GCForeground | GCBackground | GCSubwindowMode,
+                    GCFunction | GCSubwindowMode,
                     &gcv);
 
 
 	enum SelectionState state = READY;
-	S32 x, y, rx, ry, w, h;
+	S32 x = 0, y = 0, rx = 0, ry = 0, w = 0, h = 0;
+	S32 prev_rx = 0, prev_ry = 0, prev_w = 0, prev_h = 0;
+	Bool rect_drawn = False;
 	XEvent event;
 
 	while (!(state == COMPLETE)) {
@@ -61,11 +60,13 @@ screenshot(char *path)
 			switch (event.type) {
 			case (MotionNotify): {
 				if (state == IN_PROGRESS) {
-					XDrawRectangle(display, root, gc,
-						       rx, ry,
-						       w, h);
-					w = event.xbutton.x - x;
-					h = event.xbutton.y - y;
+					if (rect_drawn) {
+						XDrawRectangle(display, root, gc,
+							       prev_rx, prev_ry,
+							       prev_w, prev_h);
+					}
+					w = event.xmotion.x - x;
+					h = event.xmotion.y - y;
 					rx = x;
 					ry = y;
 
@@ -80,6 +81,12 @@ screenshot(char *path)
 					XDrawRectangle(display, root, gc,
 						       rx, ry,
 						       w, h);
+					prev_rx = rx;
+					prev_ry = ry;
+					prev_w = w;
+					prev_h = h;
+					rect_drawn = True;
+					XFlush(display);
 				}
 			} break;
 			case (ButtonPress): {
@@ -95,15 +102,15 @@ screenshot(char *path)
 
 	}
 
-	XDrawRectangle(display, root, gc, rx, ry, w, h);
+	if (rect_drawn) {
+		XDrawRectangle(display, root, gc, prev_rx, prev_ry, prev_w, prev_h);
+	}
 	XSync(display, 1);
 
 	if (w && h) {
-		XImage *image = XGetImage(display, root, rx, ry, w, h,
-					  AllPlanes, ZPixmap);
-		BGRA_to_RGBA((U8 *)image->data, w * h * 4);
-		status = stbi_write_png(path, w, h, 4, image->data,
-					w * 4);
+		XImage *image = XGetImage(display, root, rx, ry, w, h, AllPlanes, ZPixmap);
+		bgra2rgba((U8 *)image->data, w * h * 4);
+		status = stbi_write_png(path, w, h, 4, image->data, w * 4);
 		XDestroyImage(image);
 	} else {
 		status = 1;
@@ -113,6 +120,7 @@ screenshot(char *path)
 	XCloseDisplay(display);
 	return(status);
 }
+
 
 S32
 clipboard_screenshot()

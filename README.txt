@@ -1,7 +1,3 @@
-
-Bugs:
-1. Rectangle indicating screenshot area sometimes glitches
-
 Elias Nijs								    2023
 
 
